@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USDZ</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family:'Segoe UI',system-ui,sans-serif;
+  background:#0d1117; color:#e6edf3;
+  overflow:hidden; height:100vh;
+}
+
+.deck { width:100vw; height:100vh; position:relative; }
+
+.slide {
+  display:none; width:100%; height:100%;
+  position:absolute; top:0; left:0;
+  animation:fadeIn 0.3s ease;
+}
+.slide.active { display:flex; }
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ── TITLE ── */
+.slide-title {
+  background:radial-gradient(ellipse at 30% 50%,#1a2a4a 0%,#0d1117 70%);
+  flex-direction:column; justify-content:center; padding:60px 80px;
+}
+.slide-title .tag {
+  font-size:14px; letter-spacing:3px; text-transform:uppercase;
+  color:#58a6ff; margin-bottom:24px;
+}
+.slide-title h1 { font-size:54px; font-weight:700; line-height:1.1; max-width:800px; }
+.slide-title h1 span { color:#58a6ff; }
+.slide-title .subtitle {
+  margin-top:24px; font-size:19px; color:#8b949e;
+  max-width:600px; line-height:1.6;
+}
+.slide-title .logo {
+  position:absolute; bottom:56px; right:80px;
+  font-size:13px; color:#30363d; letter-spacing:1px;
+}
+
+/* ── CONTENT ── */
+.slide-content {
+  background:#0d1117; flex-direction:column;
+  justify-content:center; padding:48px 72px;
+}
+.slide-content h2 {
+  font-size:30px; font-weight:600; margin-bottom:28px;
+  border-left:4px solid #58a6ff; padding-left:18px; flex-shrink:0;
+}
+
+/* ── SPLIT ── */
+.slide-split { background:#0d1117; flex-direction:row; }
+.split-media {
+  flex:0 0 62%; background:#090d13;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  overflow:hidden; padding:16px;
+}
+.split-media img {
+  max-width:100%; max-height:100%; object-fit:contain; display:block;
+}
+.split-text {
+  flex:1; display:flex; flex-direction:column;
+  justify-content:center; padding:48px 40px;
+  border-left:1px solid #21262d;
+}
+.split-text h2 {
+  font-size:24px; font-weight:600; margin-bottom:22px;
+  border-left:4px solid #58a6ff; padding-left:16px;
+}
+.split-text ul { list-style:none; display:flex; flex-direction:column; gap:13px; }
+.split-text ul li {
+  font-size:16px; line-height:1.55; color:#c9d1d9;
+  padding-left:20px; position:relative;
+}
+.split-text ul li::before {
+  content:'▸'; position:absolute; left:0; color:#58a6ff; font-size:13px; top:3px;
+}
+.split-text .badge {
+  display:inline-block; margin-top:22px;
+  background:#1f3a2a; color:#3fb950; border:1px solid #238636;
+  border-radius:20px; padding:5px 16px; font-size:15px;
+}
+
+/* ── VIDEO PLAYER ── */
+.video-wrap {
+  width:100%; display:flex; flex-direction:column;
+  border-radius:8px; overflow:hidden;
+  border:1px solid #21262d;
+}
+.video-wrap video {
+  width:100%; height:auto; display:block;
+  cursor:pointer; background:#000;
+}
+.video-controls {
+  background:#161b22; border-top:1px solid #21262d;
+  padding:10px 14px; display:flex; flex-direction:column; gap:8px;
+}
+.vc-seek {
+  width:100%; height:4px; background:#30363d;
+  border-radius:99px; cursor:pointer; position:relative;
+  appearance:none; -webkit-appearance:none; outline:none; border:none;
+}
+.vc-seek::-webkit-slider-thumb {
+  -webkit-appearance:none; width:12px; height:12px;
+  border-radius:50%; background:#58a6ff; cursor:pointer;
+}
+.vc-seek::-webkit-slider-runnable-track {
+  background:transparent;
+}
+.vc-seek-track {
+  width:100%; height:4px; background:#30363d;
+  border-radius:99px; cursor:pointer; position:relative; overflow:hidden;
+}
+.vc-seek-fill {
+  height:100%; background:#58a6ff; border-radius:99px;
+  pointer-events:none; transition:width 0.1s linear;
+}
+.vc-seek-overlay {
+  position:absolute; top:0; left:0; width:100%; height:100%;
+  cursor:pointer;
+}
+.vc-buttons {
+  display:flex; align-items:center; gap:10px;
+}
+.vc-btn {
+  background:#21262d; border:1px solid #30363d; color:#e6edf3;
+  border-radius:6px; width:30px; height:30px; font-size:13px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; transition:background 0.15s;
+}
+.vc-btn:hover { background:#30363d; border-color:#58a6ff; }
+.vc-time {
+  font-size:14px; color:#8b949e; font-variant-numeric:tabular-nums;
+  flex-shrink:0;
+}
+.vc-vol {
+  margin-left:auto; display:flex; align-items:center; gap:6px;
+}
+.vc-vol-slider {
+  width:60px; height:3px; background:#30363d; border-radius:99px;
+  cursor:pointer; appearance:none; -webkit-appearance:none; outline:none; border:none;
+}
+.vc-vol-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; width:10px; height:10px;
+  border-radius:50%; background:#58a6ff; cursor:pointer;
+}
+
+/* ── COMPARE ── */
+.compare-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:20px; width:100%;
+}
+.compare-card {
+  background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px 28px;
+}
+.compare-card.highlight { border-color:#58a6ff; background:#0c1929; }
+.compare-card .card-title {
+  font-size:14px; letter-spacing:1px; text-transform:uppercase;
+  margin-bottom:16px; color:#8b949e;
+}
+.compare-card.highlight .card-title { color:#58a6ff; }
+.compare-card ul { list-style:none; display:flex; flex-direction:column; gap:10px; }
+.compare-card ul li {
+  font-size:16px; line-height:1.5; padding-left:18px;
+  position:relative; color:#c9d1d9;
+}
+.compare-card ul li::before { content:'•'; position:absolute; left:0; color:#484f58; }
+.compare-card.highlight ul li::before { color:#58a6ff; }
+
+/* ── SIZE SLIDE ── */
+.size-layout { display:flex; gap:24px; width:100%; align-items:flex-start; }
+.size-screenshot {
+  flex:0 0 56%; background:#090d13;
+  border:1px solid #21262d; border-radius:10px;
+  overflow:hidden; display:flex; align-items:center; justify-content:center;
+}
+.size-screenshot img { width:100%; height:auto; display:block; }
+.size-stats { flex:1; display:flex; flex-direction:column; gap:14px; }
+.stat-box {
+  background:#161b22; border:1px solid #30363d;
+  border-radius:10px; padding:18px 20px; text-align:center;
+}
+.stat-box.accent { border-color:#58a6ff; background:#0c1929; }
+.stat-box .num {
+  font-size:40px; font-weight:700; color:#58a6ff;
+  line-height:1; margin-bottom:6px;
+}
+.stat-box .label { font-size:16px; color:#8b949e; line-height:1.5; }
+
+/* ── COMPAT ── */
+.compat-list { display:flex; flex-direction:column; gap:12px; width:100%; }
+.compat-item {
+  background:#161b22; border:1px solid #30363d; border-radius:10px;
+  padding:15px 22px; display:flex; align-items:center; gap:18px;
+}
+.ci-icon { font-size:22px; flex-shrink:0; }
+.compat-item .app { font-size:16px; font-weight:600; min-width:140px; }
+.compat-item .status {
+  font-size:13px; background:#1f3a2a; color:#3fb950;
+  border:1px solid #238636; border-radius:20px; padding:3px 12px;
+  min-width:80px; text-align:center; flex-shrink:0;
+}
+.compat-item .desc { font-size:15px; color:#8b949e; line-height:1.5; }
+
+/* ── SUMMARY ── */
+.summary-list { display:flex; flex-direction:column; gap:12px; width:100%; max-width:760px; }
+.summary-item {
+  display:flex; align-items:flex-start; gap:14px;
+  font-size:18px; line-height:1.6; color:#c9d1d9;
+}
+.summary-item .check { color:#3fb950; font-size:17px; flex-shrink:0; margin-top:3px; }
+
+/* ── WORKFLOW ── */
+.workflow { display:flex; align-items:center; width:100%; margin-bottom:24px; }
+.wf-step {
+  flex:1; background:#161b22; border:1px solid #30363d;
+  border-radius:10px; padding:16px 10px; text-align:center;
+}
+.wf-step .wf-icon { font-size:24px; margin-bottom:7px; }
+.wf-step h4 { font-size:14px; font-weight:600; margin-bottom:5px; }
+.wf-step p { font-size:13px; color:#8b949e; line-height:1.4; }
+.wf-arrow { font-size:16px; color:#58a6ff; padding:0 6px; flex-shrink:0; }
+.note-box {
+  width:100%; background:#0c1929; border:1px solid #1f3d5c;
+  border-radius:10px; padding:14px 20px; font-size:15px;
+  color:#8b949e; line-height:1.6; flex-shrink:0;
+}
+.note-box strong { color:#58a6ff; }
+
+/* ── LANG SWITCHER ── */
+.lang-switch {
+  position:fixed; top:24px; right:60px;
+  display:flex; gap:6px; z-index:200;
+}
+.lang-btn {
+  background:#21262d; border:1px solid #30363d; color:#8b949e;
+  border-radius:6px; padding:4px 12px; font-size:14px; font-weight:600;
+  cursor:pointer; letter-spacing:1px; transition:all 0.15s;
+}
+.lang-btn:hover { border-color:#58a6ff; color:#e6edf3; }
+.lang-btn.active { background:#0c1929; border-color:#58a6ff; color:#58a6ff; }
+
+/* ── NAV ── */
+.nav {
+  position:fixed; bottom:28px; right:52px;
+  display:flex; gap:10px; align-items:center; z-index:100;
+}
+.nav button {
+  background:#21262d; border:1px solid #30363d; color:#e6edf3;
+  border-radius:8px; width:38px; height:38px; font-size:17px;
+  cursor:pointer; transition:background 0.2s, border-color 0.2s;
+  display:flex; align-items:center; justify-content:center;
+}
+.nav button:hover { background:#30363d; border-color:#58a6ff; }
+.nav .counter { font-size:12px; color:#484f58; min-width:44px; text-align:center; }
+
+.progress {
+  position:fixed; bottom:0; left:0; height:3px;
+  background:#58a6ff; transition:width 0.3s ease; z-index:100;
+}
+</style>
+</head>
+<body>
+
+<!-- Language switcher -->
+<div class="lang-switch">
+  <button class="lang-btn active" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" onclick="setLang('fr')">FR</button>
+  <button class="lang-btn" onclick="setLang('ru')">RU</button>
+</div>
+
+<div class="deck">
+
+  <!-- 1. TITLE -->
+  <div class="slide slide-title active">
+    <div class="tag" data-i18n="s1_tag"></div>
+    <h1 data-i18n-html="s1_h1"></h1>
+    <div class="subtitle" data-i18n="s1_sub"></div>
+    <div class="logo">3ds Max · Isaac Sim · Blender</div>
+  </div>
+
+  <!-- 2. COMPARE -->
+  <div class="slide slide-content">
+    <h2 data-i18n="s2_h2"></h2>
+    <div class="compare-grid">
+      <div class="compare-card">
+        <div class="card-title" data-i18n="s2_old_title"></div>
+        <ul>
+          <li data-i18n-html="s2_old_1"></li>
+          <li data-i18n-html="s2_old_2"></li>
+          <li data-i18n-html="s2_old_3"></li>
+          <li data-i18n="s2_old_4"></li>
+          <li data-i18n="s2_old_5"></li>
+          <li data-i18n="s2_old_6"></li>
+        </ul>
+      </div>
+      <div class="compare-card highlight">
+        <div class="card-title" data-i18n="s2_new_title"></div>
+        <ul>
+          <li data-i18n="s2_new_1"></li>
+          <li data-i18n="s2_new_2"></li>
+          <li data-i18n-html="s2_new_3"></li>
+          <li data-i18n="s2_new_4"></li>
+          <li data-i18n="s2_new_5"></li>
+          <li data-i18n="s2_new_6"></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. GIF: FULL CYCLE -->
+  <div class="slide slide-split">
+    <div class="split-media">
+      <div class="video-wrap" id="vw3">
+        <video id="v3" preload="auto">
+          <source src="https://i.imgur.com/gxTiRaf.mp4" type="video/mp4">
+        </video>
+        <div class="video-controls">
+          <div class="vc-seek-track" id="st3">
+            <div class="vc-seek-fill" id="sf3" style="width:0%"></div>
+            <div class="vc-seek-overlay" id="so3"></div>
+          </div>
+          <div class="vc-buttons">
+            <button class="vc-btn" id="pp3" title="Play/Pause">▶</button>
+            <button class="vc-btn" onclick="restartVideo('v3','pp3')" title="Restart">↩</button>
+            <span class="vc-time" id="vt3">0:00 / 0:00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="split-text">
+      <h2 data-i18n-html="s3_h2"></h2>
+      <ul>
+        <li data-i18n="s3_1"></li>
+        <li data-i18n="s3_2"></li>
+        <li data-i18n="s3_3"></li>
+        <li data-i18n="s3_4"></li>
+        <li data-i18n="s3_5"></li>
+      </ul>
+      <span class="badge" data-i18n="s3_badge"></span>
+    </div>
+  </div>
+
+  <!-- 4. GIF: SELECTIVE IMPORT -->
+  <div class="slide slide-split">
+    <div class="split-media">
+      <div class="video-wrap" id="vw4">
+        <video id="v4" preload="auto">
+          <source src="https://i.imgur.com/uin7Mnc.mp4" type="video/mp4">
+        </video>
+        <div class="video-controls">
+          <div class="vc-seek-track" id="st4">
+            <div class="vc-seek-fill" id="sf4" style="width:0%"></div>
+            <div class="vc-seek-overlay" id="so4"></div>
+          </div>
+          <div class="vc-buttons">
+            <button class="vc-btn" id="pp4" title="Play/Pause">▶</button>
+            <button class="vc-btn" onclick="restartVideo('v4','pp4')" title="Restart">↩</button>
+            <span class="vc-time" id="vt4">0:00 / 0:00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="split-text">
+      <h2 data-i18n="s4_h2"></h2>
+      <ul>
+        <li data-i18n="s4_1"></li>
+        <li data-i18n="s4_2"></li>
+        <li data-i18n="s4_3"></li>
+        <li data-i18n="s4_4"></li>
+      </ul>
+      <span class="badge" data-i18n="s4_badge"></span>
+    </div>
+  </div>
+
+  <!-- 5. SIZE -->
+  <div class="slide slide-content">
+    <h2 data-i18n="s5_h2"></h2>
+    <div class="size-layout">
+      <div class="size-screenshot">
+        <img src="https://i.imgur.com/P3jl02J.png" alt="">
+      </div>
+      <div class="size-stats">
+        <div class="stat-box accent">
+          <div class="num">2.5×</div>
+          <div class="label" data-i18n="s5_stat1"></div>
+        </div>
+        <div class="stat-box">
+          <div class="num" style="color:#3fb950;font-size:30px;" data-i18n="s5_stat2_num"></div>
+          <div class="label" data-i18n="s5_stat2_lbl"></div>
+        </div>
+        <div class="stat-box">
+          <div class="num" style="color:#f85149;font-size:30px;" data-i18n="s5_stat3_num"></div>
+          <div class="label" data-i18n="s5_stat3_lbl"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. VIDEO: ISAAC SIM -->
+  <div class="slide slide-split">
+    <div class="split-media">
+      <div class="video-wrap" id="vw1">
+        <video id="v1" preload="auto">
+          <source src="https://i.imgur.com/UXM42nq.mp4" type="video/mp4">
+        </video>
+        <div class="video-controls">
+          <div class="vc-seek-track" id="st1">
+            <div class="vc-seek-fill" id="sf1" style="width:0%"></div>
+            <div class="vc-seek-overlay" id="so1"></div>
+          </div>
+          <div class="vc-buttons">
+            <button class="vc-btn" id="pp1" title="Play/Pause">▶</button>
+            <button class="vc-btn" onclick="restartVideo('v1','pp1')" title="Restart">↩</button>
+            <span class="vc-time" id="vt1">0:00 / 0:00</span>
+            <div class="vc-vol">
+              <button class="vc-btn" id="vm1" onclick="toggleMute('v1','vm1')">🔇</button>
+              <input class="vc-vol-slider" id="vs1" type="range" min="0" max="1" step="0.05" value="1">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="split-text">
+      <h2 data-i18n-html="s6_h2"></h2>
+      <ul>
+        <li data-i18n="s6_1"></li>
+        <li data-i18n="s6_2"></li>
+        <li data-i18n="s6_3"></li>
+        <li data-i18n="s6_4"></li>
+        <li data-i18n="s6_5"></li>
+      </ul>
+      <span class="badge" data-i18n="s6_badge"></span>
+    </div>
+  </div>
+
+  <!-- 7. VIDEO: BLENDER -->
+  <div class="slide slide-split">
+    <div class="split-media">
+      <div class="video-wrap" id="vw2">
+        <video id="v2" preload="auto">
+          <source src="https://i.imgur.com/UD6Uzcr.mp4" type="video/mp4">
+        </video>
+        <div class="video-controls">
+          <div class="vc-seek-track" id="st2">
+            <div class="vc-seek-fill" id="sf2" style="width:0%"></div>
+            <div class="vc-seek-overlay" id="so2"></div>
+          </div>
+          <div class="vc-buttons">
+            <button class="vc-btn" id="pp2" title="Play/Pause">▶</button>
+            <button class="vc-btn" onclick="restartVideo('v2','pp2')" title="Restart">↩</button>
+            <span class="vc-time" id="vt2">0:00 / 0:00</span>
+            <div class="vc-vol">
+              <button class="vc-btn" id="vm2" onclick="toggleMute('v2','vm2')">🔇</button>
+              <input class="vc-vol-slider" id="vs2" type="range" min="0" max="1" step="0.05" value="1">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="split-text">
+      <h2 data-i18n-html="s7_h2"></h2>
+      <ul>
+        <li data-i18n="s7_1"></li>
+        <li data-i18n="s7_2"></li>
+        <li data-i18n="s7_3"></li>
+        <li data-i18n="s7_4"></li>
+      </ul>
+      <span class="badge" data-i18n="s7_badge"></span>
+    </div>
+  </div>
+
+  <!-- 8. COMPAT -->
+  <div class="slide slide-content">
+    <h2 data-i18n="s8_h2"></h2>
+    <div class="compat-list">
+      <div class="compat-item">
+        <div class="ci-icon">🎮</div>
+        <div class="app">3ds Max</div>
+        <div class="status" data-i18n="s8_export"></div>
+        <div class="desc" data-i18n="s8_max_desc"></div>
+      </div>
+      <div class="compat-item">
+        <div class="ci-icon">🤖</div>
+        <div class="app">Isaac Sim</div>
+        <div class="status" data-i18n="s8_import"></div>
+        <div class="desc" data-i18n="s8_isaac_desc"></div>
+      </div>
+      <div class="compat-item">
+        <div class="ci-icon">🐉</div>
+        <div class="app">Blender</div>
+        <div class="status" data-i18n="s8_import"></div>
+        <div class="desc" data-i18n="s8_blender_desc"></div>
+      </div>
+      <div class="compat-item">
+        <div class="ci-icon">🍎</div>
+        <div class="app">Apple AR</div>
+        <div class="status" data-i18n="s8_native"></div>
+        <div class="desc" data-i18n="s8_apple_desc"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. SUMMARY -->
+  <div class="slide slide-content">
+    <h2 data-i18n="s9_h2"></h2>
+    <div class="summary-list">
+      <div class="summary-item"><span class="check">✓</span><span data-i18n-html="s9_1"></span></div>
+      <div class="summary-item"><span class="check">✓</span><span data-i18n-html="s9_2"></span></div>
+      <div class="summary-item"><span class="check">✓</span><span data-i18n-html="s9_3"></span></div>
+      <div class="summary-item"><span class="check">✓</span><span data-i18n-html="s9_4"></span></div>
+      <div class="summary-item"><span class="check">✓</span><span data-i18n-html="s9_5"></span></div>
+      <div class="summary-item"><span class="check">✓</span><span data-i18n-html="s9_6"></span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="nav">
+  <button onclick="prev()">‹</button>
+  <span class="counter" id="counter">1 / 9</span>
+  <button onclick="next()">›</button>
+</div>
+<div class="progress" id="progress"></div>
+
+<script>
+// ── TRANSLATIONS ──────────────────────────────────────────────────────────────
+const T = {
+  ru: {
+    s1_tag:   'Предложение по формату хранения',
+    s1_h1:    'USDZ как базовый<br>формат <span style="color:#58a6ff">хранения</span><br>3D-контента',
+    s1_sub:   'Замена ZIP-архивов на единый контейнерный формат —\nбыстрее, компактнее, совместим с экосистемой USD.',
+
+    s2_h2:        'Текущая ситуация vs USDZ',
+    s2_old_title: 'Текущий процесс (ZIP)',
+    s2_old_1:     'Экспорт из 3ds Max → GLB',
+    s2_old_2:     'Упаковка файлов в ZIP-архив',
+    s2_old_3:     'Время упаковки — <strong style="color:#f85149">до нескольких минут</strong>',
+    s2_old_4:     'Размер архива больше',
+    s2_old_5:     'Нет нативной поддержки иерархии USD',
+    s2_old_6:     'Для разворачивания нужна распаковка',
+    s2_new_title: 'USDZ — предложение',
+    s2_new_1:     'Нативный экспорт из 3ds Max в USDZ',
+    s2_new_2:     'Упаковка встроена в экспорт USD',
+    s2_new_3:     'Время экспорта — <strong style="color:#3fb950">пару секунд</strong>',
+    s2_new_4:     'Размер в 2.5× меньше ZIP',
+    s2_new_5:     'Сохраняет иерархию сцены и папок',
+    s2_new_6:     'Читается напрямую без распаковки',
+
+    s3_h2:    'Полный цикл:<br>экспорт → импорт',
+    s3_1:     'Экспорт из 3ds Max в USDZ — пару секунд',
+    s3_2:     'Из одного .usdz файла восстанавливается весь проект',
+    s3_3:     'Иерархия папок и сцены воспроизводится точно',
+    s3_4:     'Материалы, текстуры, xforms — без потерь',
+    s3_5:     'Никаких промежуточных распаковок вручную',
+    s3_badge: '✓ Полный проект из одного файла',
+
+    s4_h2:    'Выборочный импорт',
+    s4_1:     'Можно загрузить только нужную модель, без всего проекта',
+    s4_2:     'USDZ читается напрямую как USD-слой',
+    s4_3:     'Не создаёт лишних файлов на диске',
+    s4_4:     'Удобно для быстрого просмотра и проверки',
+    s4_badge: '✓ Только модель — без лишнего',
+
+    s5_h2:         'Размер файла: USDZ vs ZIP',
+    s5_stat1:      'USDZ меньше\nZIP-архива',
+    s5_stat2_num:  '1–5 сек',
+    s5_stat2_lbl:  'Время экспорта\nв USDZ',
+    s5_stat3_num:  'минуты',
+    s5_stat3_lbl:  'Время упаковки\nZIP-архива',
+
+    s6_h2:    'Совместимость:<br>Isaac Sim',
+    s6_1:     'USDZ открывается напрямую в Isaac Sim',
+    s6_2:     'Полная поддержка USD scenegraph',
+    s6_3:     'SimReady-атрибуты и физика сохраняются',
+    s6_4:     'Не требует конвертации или распаковки',
+    s6_5:     'Готов к робототехническому симулированию',
+    s6_badge: '✓ Нативная поддержка NVIDIA Isaac Sim',
+
+    s7_h2:    'Совместимость:<br>Blender',
+    s7_1:     'Импорт модели из USDZ уже работает',
+    s7_2:     'Геометрия и материалы импортируются корректно',
+    s7_3:     'Загрузка полной сцены — в разработке',
+    s7_4:     'Blender 3.x+ поддерживает USD нативно',
+    s7_badge: '✓ Импорт работает · Сцена — в разработке',
+
+    s8_h2:          'Совместимость по инструментам',
+    s8_export:      '✓ Экспорт',
+    s8_import:      '✓ Импорт',
+    s8_native:      '✓ Нативно',
+    s8_max_desc:    'Нативный USD-экспортёр. Мгновенная упаковка в USDZ прямо при экспорте сцены.',
+    s8_isaac_desc:  'Открывается напрямую. Поддержка USD-сцены, физики, SimReady-атрибутов.',
+    s8_blender_desc:'Импорт модели работает. Загрузка полной сцены — в разработке.',
+    s8_apple_desc:  'USDZ — родной формат AR Quick Look и Reality Composer Pro.',
+
+    s9_h2: 'Итог: почему USDZ',
+    s9_1: '<strong>Скорость:</strong> экспорт несколько секунд против нескольких минут на ZIP-упаковку',
+    s9_2: '<strong>Компактность:</strong> файл в 2.5× меньше ZIP-архива с тем же содержимым',
+    s9_3: '<strong>Полнота данных:</strong> иерархия сцены, папок, материалы — всё в одном файле',
+    s9_4: '<strong>Гибкость импорта:</strong> можно загрузить весь проект или только модель',
+    s9_5: '<strong>Широкая совместимость:</strong> 3ds Max, Isaac Sim, Blender, Apple AR — без конвертации',
+    s9_6: '<strong>Стандарт Pixar/NVIDIA:</strong> открытый формат с долгосрочной поддержкой экосистемы',
+  },
+
+  en: {
+    s1_tag:   'Storage format proposal',
+    s1_h1:    'USDZ as the primary<br><span style="color:#58a6ff">storage format</span><br>for 3D content',
+    s1_sub:   'Replacing ZIP archives with a single container format —\nfaster, smaller, compatible with the USD ecosystem.',
+
+    s2_h2:        'Current approach vs USDZ',
+    s2_old_title: 'Current process (ZIP)',
+    s2_old_1:     'Export from 3ds Max → GLB',
+    s2_old_2:     'Pack files into a ZIP archive',
+    s2_old_3:     'Packing time — <strong style="color:#f85149">up to several minutes</strong>',
+    s2_old_4:     'Larger archive size',
+    s2_old_5:     'No native USD hierarchy support',
+    s2_old_6:     'Requires unpacking to restore',
+    s2_new_title: 'USDZ — proposal',
+    s2_new_1:     'Native export from 3ds Max to USDZ',
+    s2_new_2:     'Packing is built into the USD export',
+    s2_new_3:     'Export time — <strong style="color:#3fb950">a few seconds</strong>',
+    s2_new_4:     '2.5× smaller than ZIP',
+    s2_new_5:     'Preserves scene and folder hierarchy',
+    s2_new_6:     'Reads directly without unpacking',
+
+    s3_h2:    'Full cycle:<br>export → import',
+    s3_1:     'Export from 3ds Max to USDZ — a few seconds',
+    s3_2:     'The entire project is restored from one .usdz file',
+    s3_3:     'Folder and scene hierarchy reproduced exactly',
+    s3_4:     'Materials, textures, xforms — no loss',
+    s3_5:     'No manual unpacking required',
+    s3_badge: '✓ Full project from a single file',
+
+    s4_h2:    'Selective import',
+    s4_1:     'Load only the model you need, without the full project',
+    s4_2:     'USDZ is read directly as a USD layer',
+    s4_3:     'No extra files created on disk',
+    s4_4:     'Convenient for quick review and validation',
+    s4_badge: '✓ Just the model — nothing extra',
+
+    s5_h2:         'File size: USDZ vs ZIP',
+    s5_stat1:      'USDZ smaller\nthan ZIP archive',
+    s5_stat2_num:  '1–5 sec',
+    s5_stat2_lbl:  'USDZ\nexport time',
+    s5_stat3_num:  'minutes',
+    s5_stat3_lbl:  'ZIP archive\npacking time',
+
+    s6_h2:    'Compatible with:<br>Isaac Sim',
+    s6_1:     'USDZ opens directly in Isaac Sim',
+    s6_2:     'Full USD scenegraph support',
+    s6_3:     'SimReady attributes and physics are preserved',
+    s6_4:     'No conversion or unpacking required',
+    s6_5:     'Ready for robotics simulation',
+    s6_badge: '✓ Native NVIDIA Isaac Sim support',
+
+    s7_h2:    'Compatible with:<br>Blender',
+    s7_1:     'Model import from USDZ already works',
+    s7_2:     'Geometry and materials import correctly',
+    s7_3:     'Full scene loading — in development',
+    s7_4:     'Blender 3.x+ supports USD natively',
+    s7_badge: '✓ Import works · Full scene — in progress',
+
+    s8_h2:          'Tool compatibility',
+    s8_export:      '✓ Export',
+    s8_import:      '✓ Import',
+    s8_native:      '✓ Native',
+    s8_max_desc:    'Native USD exporter. Instant USDZ packing during scene export.',
+    s8_isaac_desc:  'Opens directly. Full support for USD scene, physics, SimReady attributes.',
+    s8_blender_desc:'Model import works. Full scene loading is in development.',
+    s8_apple_desc:  'USDZ is the native format for AR Quick Look and Reality Composer Pro.',
+
+    s9_h2: 'Summary: why USDZ',
+    s9_1: '<strong>Speed:</strong> a few seconds export vs. several minutes for ZIP packing',
+    s9_2: '<strong>Size:</strong> 2.5× smaller than a ZIP archive with the same content',
+    s9_3: '<strong>Complete data:</strong> scene hierarchy, folders, materials — all in one file',
+    s9_4: '<strong>Flexible import:</strong> load the full project or just a single model',
+    s9_5: '<strong>Wide compatibility:</strong> 3ds Max, Isaac Sim, Blender, Apple AR — no conversion',
+    s9_6: '<strong>Pixar/NVIDIA standard:</strong> open format with long-term ecosystem support',
+  },
+
+  fr: {
+    s1_tag:   'Proposition de format de stockage',
+    s1_h1:    'USDZ comme format<br>de <span style="color:#58a6ff">stockage principal</span><br>de contenu 3D',
+    s1_sub:   'Remplacement des archives ZIP par un format conteneur unique —\nplus rapide, plus compact, compatible avec l\'écosystème USD.',
+
+    s2_h2:        'Situation actuelle vs USDZ',
+    s2_old_title: 'Processus actuel (ZIP)',
+    s2_old_1:     'Export depuis 3ds Max → GLB',
+    s2_old_2:     'Compression des fichiers en archive ZIP',
+    s2_old_3:     'Temps de compression — <strong style="color:#f85149">jusqu\'à plusieurs minutes</strong>',
+    s2_old_4:     'Taille d\'archive plus grande',
+    s2_old_5:     'Pas de support natif de la hiérarchie USD',
+    s2_old_6:     'Décompression requise pour restaurer',
+    s2_new_title: 'USDZ — proposition',
+    s2_new_1:     'Export natif depuis 3ds Max vers USDZ',
+    s2_new_2:     'La compression est intégrée à l\'export USD',
+    s2_new_3:     'Temps d\'export — <strong style="color:#3fb950">quelques secondes</strong>',
+    s2_new_4:     '2.5× plus petit que le ZIP',
+    s2_new_5:     'Préserve la hiérarchie de scène et de dossiers',
+    s2_new_6:     'Lecture directe sans décompression',
+
+    s3_h2:    'Cycle complet :<br>export → import',
+    s3_1:     'Export depuis 3ds Max vers USDZ — quelques secondes',
+    s3_2:     'Le projet entier est restauré depuis un seul fichier .usdz',
+    s3_3:     'Hiérarchie des dossiers et de la scène reproduite exactement',
+    s3_4:     'Matériaux, textures, xforms — sans perte',
+    s3_5:     'Aucune décompression manuelle requise',
+    s3_badge: '✓ Projet complet depuis un seul fichier',
+
+    s4_h2:    'Import sélectif',
+    s4_1:     'Charger uniquement le modèle souhaité, sans le projet entier',
+    s4_2:     'Le USDZ est lu directement comme un calque USD',
+    s4_3:     'Aucun fichier temporaire créé sur le disque',
+    s4_4:     'Pratique pour une revue et une validation rapides',
+    s4_badge: '✓ Le modèle seul — rien de superflu',
+
+    s5_h2:         'Taille du fichier : USDZ vs ZIP',
+    s5_stat1:      'USDZ plus petit\nque l\'archive ZIP',
+    s5_stat2_num:  '1–5 sec',
+    s5_stat2_lbl:  'Temps d\'export\nUSDZ',
+    s5_stat3_num:  'minutes',
+    s5_stat3_lbl:  'Temps de compression\narchive ZIP',
+
+    s6_h2:    'Compatibilité :<br>Isaac Sim',
+    s6_1:     'Le USDZ s\'ouvre directement dans Isaac Sim',
+    s6_2:     'Support complet du scenegraph USD',
+    s6_3:     'Attributs SimReady et physique préservés',
+    s6_4:     'Aucune conversion ni décompression requise',
+    s6_5:     'Prêt pour la simulation robotique',
+    s6_badge: '✓ Support natif NVIDIA Isaac Sim',
+
+    s7_h2:    'Compatibilité :<br>Blender',
+    s7_1:     'L\'import de modèles depuis USDZ fonctionne déjà',
+    s7_2:     'Géométrie et matériaux importés correctement',
+    s7_3:     'Chargement de la scène complète — en développement',
+    s7_4:     'Blender 3.x+ supporte USD nativement',
+    s7_badge: '✓ Import fonctionnel · Scène complète — en cours',
+
+    s8_h2:          'Compatibilité par outil',
+    s8_export:      '✓ Export',
+    s8_import:      '✓ Import',
+    s8_native:      '✓ Natif',
+    s8_max_desc:    'Exporteur USD natif. Compression en USDZ en quelques secondes lors de l\'export.',
+    s8_isaac_desc:  'Ouverture directe. Support complet de la scène USD, physique, attributs SimReady.',
+    s8_blender_desc:'Import de modèle fonctionnel. Chargement de scène complète en développement.',
+    s8_apple_desc:  'USDZ est le format natif d\'AR Quick Look et Reality Composer Pro.',
+
+    s9_h2: 'Conclusion : pourquoi USDZ',
+    s9_1: '<strong>Rapidité :</strong> export en quelques secondes contre plusieurs minutes pour ZIP',
+    s9_2: '<strong>Compacité :</strong> fichier 2.5× plus petit qu\'une archive ZIP à contenu égal',
+    s9_3: '<strong>Données complètes :</strong> hiérarchie de scène, dossiers, matériaux — tout en un fichier',
+    s9_4: '<strong>Import flexible :</strong> charger le projet entier ou un seul modèle',
+    s9_5: '<strong>Large compatibilité :</strong> 3ds Max, Isaac Sim, Blender, Apple AR — sans conversion',
+    s9_6: '<strong>Standard Pixar/NVIDIA :</strong> format ouvert avec support écosystème à long terme',
+  }
+};
+
+// ── LANGUAGE ──────────────────────────────────────────────────────────────────
+let currentLang = 'en';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === lang.toUpperCase());
+  });
+  applyTranslations();
+}
+
+function applyTranslations() {
+  const d = T[currentLang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (d[key] !== undefined) el.textContent = d[key];
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const key = el.getAttribute('data-i18n-html');
+    if (d[key] !== undefined) el.innerHTML = d[key];
+  });
+}
+
+// ── VIDEO CONTROLS ────────────────────────────────────────────────────────────
+function initVideo(vid, ppId, sfId, soId, vtId, vsId) {
+  const v  = document.getElementById(vid);
+  const pp = document.getElementById(ppId);
+  const sf = document.getElementById(sfId);
+  const so = document.getElementById(soId);
+  const vt = document.getElementById(vtId);
+  const vs = vsId ? document.getElementById(vsId) : null;
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    return m + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  }
+
+  v.addEventListener('timeupdate', () => {
+    if (!v.duration) return;
+    const pct = (v.currentTime / v.duration) * 100;
+    sf.style.width = pct + '%';
+    vt.textContent = fmt(v.currentTime) + ' / ' + fmt(v.duration);
+  });
+
+  v.addEventListener('loadedmetadata', () => {
+    vt.textContent = '0:00 / ' + fmt(v.duration);
+  });
+
+  v.addEventListener('play',  () => { pp.textContent = '⏸'; });
+  v.addEventListener('pause', () => { pp.textContent = '▶'; });
+  v.addEventListener('ended', () => { pp.textContent = '▶'; });
+
+  pp.addEventListener('click', () => { v.paused ? v.play() : v.pause(); });
+  v.addEventListener('click',  () => { v.paused ? v.play() : v.pause(); });
+
+  so.addEventListener('click', e => {
+    const rect = so.parentElement.getBoundingClientRect();
+    const pct  = (e.clientX - rect.left) / rect.width;
+    if (v.duration) v.currentTime = pct * v.duration;
+  });
+
+  if (vs) {
+    vs.addEventListener('input', () => {
+      v.volume = vs.value;
+      v.muted  = (vs.value == 0);
+      document.getElementById(vsId.replace('vs','vm')).textContent = v.muted ? '🔇' : '🔊';
+    });
+    v.muted  = false;
+    v.volume = 1;
+    document.getElementById(vsId.replace('vs','vm')).textContent = '🔊';
+  }
+}
+
+function restartVideo(vid, ppId) {
+  const v = document.getElementById(vid);
+  v.currentTime = 0;
+  v.play();
+  document.getElementById(ppId).textContent = '⏸';
+}
+
+function toggleMute(vid, vmId) {
+  const v  = document.getElementById(vid);
+  v.muted  = !v.muted;
+  document.getElementById(vmId).textContent = v.muted ? '🔇' : '🔊';
+  const vsId = vmId.replace('vm', 'vs');
+  document.getElementById(vsId).value = v.muted ? 0 : v.volume || 1;
+}
+
+// ── SLIDES ────────────────────────────────────────────────────────────────────
+const slides = document.querySelectorAll('.slide');
+let cur = 0;
+
+// pause video when leaving slide (0-indexed)
+const videoSlides = { 2: 'v3', 3: 'v4', 5: 'v1', 6: 'v2' };
+
+function show(n) {
+  // pause current video if any
+  const cv = videoSlides[cur];
+  if (cv) document.getElementById(cv).pause();
+
+  slides[cur].classList.remove('active');
+  cur = (n + slides.length) % slides.length;
+  slides[cur].classList.add('active');
+
+  document.getElementById('counter').textContent = (cur + 1) + ' / ' + slides.length;
+  document.getElementById('progress').style.width = ((cur + 1) / slides.length * 100) + '%';
+}
+
+function next() { show(cur + 1); }
+function prev() { show(cur - 1); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') next();
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') prev();
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+initVideo('v1','pp1','sf1','so1','vt1','vs1');
+initVideo('v2','pp2','sf2','so2','vt2','vs2');
+initVideo('v3','pp3','sf3','so3','vt3',null);
+initVideo('v4','pp4','sf4','so4','vt4',null);
+applyTranslations();
+show(0);
+</script>
+</body>
+</html>
